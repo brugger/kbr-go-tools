@@ -1,4 +1,4 @@
-package dbUtils
+package fileUtils
 
 import (
 	"testing"

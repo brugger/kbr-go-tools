@@ -1,10 +1,18 @@
-package dbUtils
+package fileUtils
 
 
 import (
+	"fmt"
+	"log"
 	"os"
 )
 
+func checkErr(err error) {
+	if err != nil {
+		fmt.Println("Error")
+		log.Fatal(err)
+	}
+}
 
 func IsFile(filename string ) bool {
 	_, err := os.Stat(filename)
