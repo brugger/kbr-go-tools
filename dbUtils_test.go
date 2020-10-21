@@ -1,4 +1,4 @@
-package db
+package dbUtils
 
 import (
 	"database/sql"
@@ -72,7 +72,7 @@ func TestGetById( t *testing.T ) {
 
 func TestGetId( t *testing.T ) {
 	id := GetID("TEST", map[string]interface{}{"value": "world"})
-	fmt.Println( id )
+	//fmt.Println( id )
 
 	if id.(int64) != 2 {
 		t.Errorf("Returned wrong id, expected 2 got %d", id)
@@ -85,7 +85,7 @@ func TestUpdate(t *testing.T) {
 	v["value"] = "New value"
 	Update("TEST", v, map[string]interface{}{"id": 2})
 	v = GetByID("TEST", 2)
-	fmt.Println( v )
+	//fmt.Println( v )
 }
 
 
@@ -95,7 +95,7 @@ func TestDelete(t *testing.T) {
 	if len(v) != 0 {
 		t.Errorf("Element not deleted")
 	}
-	fmt.Println( v )
+	//fmt.Println( v )
 }
 
 

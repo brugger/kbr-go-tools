@@ -1,4 +1,4 @@
-package db
+package dbUtils
 
 import (
 	"fmt"
@@ -21,14 +21,15 @@ func checkErr(err error) {
 
 func Connect(driver string, db_uri string) {
 
-	db_conn, err := sql.Open(driver, db_uri)
+	dbConn, err := sql.Open(driver, db_uri)
 	checkErr(err)
-	db = db_conn
+	db = dbConn
 	return
 }
 
 func Close() {
-	db.Close()
+	err := db.Close()
+	checkErr( err )
 }
 
 func escapeString(v interface{}) string {
@@ -161,7 +162,7 @@ func Add( table string, entry map[string]interface{}) error {
 
 	var keys, values  []string
 
-	for k, _ := range entry {
+	for k := range entry {
 		//fmt.Printf(" VALUE %s --> %s\n", k, entry[k])
 		keys = append( keys, k)
 		values = append( values, escapeString(entry[k]))
@@ -185,7 +186,7 @@ func AddBulk( table string, entries []map[string]interface{}) error {
 	for _, entry := range entries {
 		var keys, values  []string
 
-		for k, _ := range entry {
+		for k := range entry {
 			keys = append( keys, k)
 			values = append( values, escapeString(entry[k]))
 		}
@@ -207,17 +208,17 @@ func Update(table string, values map[string]interface{}, conditions map[string]i
 
 	var updates, conds  []string
 
-	for k, _ := range values {
+	for k := range values {
 		updates = append( updates, fmt.Sprintf("%s = %s", k, escapeString(values[k])))
 	}
 
-	for k, _ := range conditions {
+	for k := range conditions {
 		conds = append( conds, fmt.Sprintf("%s = %s", k, escapeString(values[k])))
 	}
 
 	stmt := fmt.Sprintf( "UPDATE %s SET %s WHERE %s ", table, strings.Join( updates, ", "), strings.Join( conds, " AND "))
 
-	fmt.Println( stmt )
+	//fmt.Println( stmt )
 	err := Do( stmt )
 	checkErr( err )
 
@@ -225,20 +226,7 @@ func Update(table string, values map[string]interface{}, conditions map[string]i
 
 func Delete( table string, id interface{}) {
 	stmt := fmt.Sprintf("DELETE FROM %s WHERE id = %s", table, escapeString(id))
-	Do(stmt)
+	err := Do(stmt)
+	checkErr( err )
 
-}
-
-
-func main() {
-	Connect("sqlite3", "probes.db")
-	f := make(map[string]interface{})
-	ps := Get("probes", f, " limit 2 ")
-	fmt.Println( ps )
-	f["gene"] = "gene2"
-	p := GetSingle("probes", f, " limit 1 ")
-	fmt.Println( p )
-
-//	return_map("select * from probes  LIMIT 1")
-	Close()
 }
