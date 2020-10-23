@@ -44,7 +44,7 @@ func escapeString(v interface{}) string {
 	}
 }
 
-func asList(query string) []map[string]interface{} {
+func AsList(query string) []map[string]interface{} {
 
 	rows, err := db.Query(query)
 	checkErr(err)
@@ -108,7 +108,7 @@ func Get(table string, filter map[string]interface{}, rest ...string) []map[stri
 		stmt = fmt.Sprintf("%s %s", stmt, strings.Join(rest[:], " "))
 	}
 
-	return asList(stmt)
+	return AsList(stmt)
 }
 
 func Do(query string ) error {
