@@ -9,7 +9,7 @@ var file_content string = "There was a boy\nA very strange enchanted boy"
 
 func TestIsFile(t *testing.T ){
 	if ! IsFile( "/etc/passwd") {
-		t.Error("file is there /etc/passwd")
+		t.Error("file /etc/passwd exists")
 	}
 	if  IsFile( "/etc/sdfsdfsdfsdfsf"){
 		t.Error("file should not exist", )
