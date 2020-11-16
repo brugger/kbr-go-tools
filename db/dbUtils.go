@@ -6,8 +6,8 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/jackc/pgx"
-	"strings"
+	_ "github.com/lib/pq"
+        "strings"
 	"reflect"
 )
 
