@@ -28,14 +28,14 @@ func TestMain(m *testing.M) {
 }
 
 func TestDo ( t *testing.T ) {
-	t.Log("Insert data with Do")
+//	t.Log("Insert data with Do")
 	err := Do("INSERT INTO TEST (idx, value) values (1, 'hello'), (3, 'world');")
 	checkErr( err )
 
 }
 
 func TestAdd ( t *testing.T ) {
-	t.Log("Insert data with Add")
+//	t.Log("Insert data with Add")
 	var v = make(map[string]interface{})
 	v["idx"] = 2
 	v["value"] = "cruel"
@@ -45,7 +45,7 @@ func TestAdd ( t *testing.T ) {
 }
 
 func TestAddBulk ( t *testing.T ) {
-	t.Log("Insert data with AddBulk")
+//	t.Log("Insert data with AddBulk")
 
 	v1 := map[string]interface{}{"idx": 10, "value": "Remember to"}
 	v2 := map[string]interface{}{"idx": 11, "value": "breathe"}
