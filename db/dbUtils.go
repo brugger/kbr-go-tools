@@ -47,6 +47,11 @@ func escapeString(v interface{}) string {
 
 func AsList(query string) []map[string]interface{} {
 
+     	if query[len(query)-1] != ';' {
+	  query = fmt.Sprintf("%s;", query)
+	}
+
+
 	rows, err := db.Query(query)
 	checkErr(err)
 	cols, err := rows.Columns() // Remember to check err afterwards
@@ -113,6 +118,9 @@ func Get(table string, filter map[string]interface{}, rest ...string) []map[stri
 }
 
 func Do(query string ) error {
+     	if query[len(query)-1] != ';' {
+	  query = fmt.Sprintf("%s;", query)
+	}
 	_, err := db.Exec( query )
 	return err
 }
