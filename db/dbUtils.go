@@ -1,14 +1,16 @@
 package dbUtils
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
-	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
+	"reflect"
+	"strings"
+
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-        "strings"
-	"reflect"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var db *sql.DB
@@ -30,34 +32,38 @@ func Connect(driver string, db_uri string) {
 
 func Close() {
 	err := db.Close()
-	checkErr( err )
+	checkErr(err)
 }
 
-func escapeString(v interface{}) string {
+func escapeString(v any) (string, error) {
 
-	switch reflect.TypeOf( v ).String() {
+	switch reflect.TypeOf(v).String() {
 	case "string":
-		return fmt.Sprintf("'%s'", v)
-	case "int", "int16", "int32", "int64":
-		return fmt.Sprintf("%d", v)
+		return fmt.Sprintf("'%s'", v), nil
+	case "int", "int8", "int16", "int32", "int64":
+		return fmt.Sprintf("%d", v), nil
+	case "float32", "float64":
+		return fmt.Sprintf("%f", v), nil
+	case "bool":
+		return fmt.Sprintf("%t", v), nil
 	default:
-		return fmt.Sprintf("'%s'", v)
+		return "", errors.New(fmt.Sprintf("Unsupported type passed %s", reflect.TypeOf(v).String()))
 	}
 }
 
 func AsList(query string) []map[string]interface{} {
 
-     	if query[len(query)-1] != ';' {
-	  query = fmt.Sprintf("%s;", query)
+	if query[len(query)-1] != ';' {
+		query = fmt.Sprintf("%s;", query)
 	}
 
-	fmt.Println( query )
+	fmt.Println(query)
 	rows, err := db.Query(query)
 	checkErr(err)
 	cols, err := rows.Columns() // Remember to check err afterwards
 	checkErr(err)
 
-//	fmt.Println(cols)
+	//	fmt.Println(cols)
 
 	var res []map[string]interface{}
 
@@ -95,16 +101,15 @@ func Get(table string, filter map[string]interface{}, rest ...string) []map[stri
 
 	var conds []string
 	for key, value := range filter {
-		switch reflect.TypeOf( value ).String() {
-			case "string":
-				conds = append(conds, fmt.Sprintf(" %s = '%s'", key, value))
-			case "int":
-				conds = append(conds, fmt.Sprintf(" %s = %d", key, value))
-			default:
-				conds = append(conds, fmt.Sprintf(" %s = '%s'", key, value))
+		switch reflect.TypeOf(value).String() {
+		case "string":
+			conds = append(conds, fmt.Sprintf(" %s = '%s'", key, value))
+		case "int":
+			conds = append(conds, fmt.Sprintf(" %s = %d", key, value))
+		default:
+			conds = append(conds, fmt.Sprintf(" %s = '%s'", key, value))
 		}
 	}
-
 
 	//    fmt.Println( conds )
 	if len(conds) > 0 {
@@ -117,25 +122,24 @@ func Get(table string, filter map[string]interface{}, rest ...string) []map[stri
 	return AsList(stmt)
 }
 
-func Do(query string ) error {
-     	if query[len(query)-1] != ';' {
-	  query = fmt.Sprintf("%s;", query)
+func Do(query string) error {
+	if query[len(query)-1] != ';' {
+		query = fmt.Sprintf("%s;", query)
 	}
-	fmt.Println( query )
-	_, err := db.Exec( query )
+	fmt.Println(query)
+	_, err := db.Exec(query)
 	return err
 }
 
+func GetSingle(table string, filter map[string]interface{}, rest ...string) map[string]interface{} {
 
-func GetSingle( table string, filter map[string]interface{}, rest ...string) map[string]interface{} {
-
-//	fmt.Println(reflect.TypeOf(rest).String())
+	//	fmt.Println(reflect.TypeOf(rest).String())
 
 	values := Get(table, filter, rest...)
-	if len( values ) > 1 {
+	if len(values) > 1 {
 		fmt.Println("Function returned multiple vales!")
 		return nil
-	} else if len( values ) == 1 {
+	} else if len(values) == 1 {
 		return values[0]
 	} else {
 		return nil
@@ -143,100 +147,102 @@ func GetSingle( table string, filter map[string]interface{}, rest ...string) map
 
 }
 
-func GetAll( table string, rest ...string) []map[string]interface{} {
+func GetAll(table string, rest ...string) []map[string]interface{} {
 	return Get(table, make(map[string]interface{}), rest...)
 }
 
-func GetByID( table string, id interface{}, rest ...string) map[string]interface{} {
+func GetByID(table string, id interface{}, rest ...string) map[string]interface{} {
 	f := make(map[string]interface{})
 	f["id"] = id
 	return GetSingle(table, f, rest...)
 }
 
-
-func GetID( table string, filter map[string]interface{}, rest ...string) interface{} {
+func GetID(table string, filter map[string]interface{}, rest ...string) interface{} {
 
 	//	fmt.Println(reflect.TypeOf(rest).String())
 
 	value := GetSingle(table, filter, rest...)
-	if value != nil{
+	if value != nil {
 		return value["id"]
 	}
 
 	return nil
 }
 
+func Add(table string, entry map[string]interface{}) error {
 
-func Add( table string, entry map[string]interface{}) error {
-
-
-	var keys, values  []string
+	var keys, values []string
 
 	for k := range entry {
 		//fmt.Printf(" VALUE %s --> %s\n", k, entry[k])
-		keys = append( keys, k)
-		values = append( values, escapeString(entry[k]))
-
+		keys = append(keys, k)
+		value, err := escapeString(entry[k])
+		checkErr(err)
+		values = append(values, value)
 	}
 
-	stmt := fmt.Sprintf( "INSERT INTO %s (%s) VALUES ( %s )", table, strings.Join( keys, ","), strings.Join( values, ","))
+	stmt := fmt.Sprintf("INSERT INTO %s (%s) VALUES ( %s )", table, strings.Join(keys, ","), strings.Join(values, ","))
 
-
-	err := Do( stmt )
+	err := Do(stmt)
 
 	return err
 }
 
+func AddBulk(table string, entries []map[string]interface{}) error {
 
-func AddBulk( table string, entries []map[string]interface{}) error {
-
-	var all_values[]string
+	var all_values []string
 	var all_keys string
 
 	for _, entry := range entries {
-		var keys, values  []string
+		var keys, values []string
 
 		for k := range entry {
-			keys = append( keys, k)
-			values = append( values, escapeString(entry[k]))
+			keys = append(keys, k)
+			value, err := escapeString(entry[k])
+			checkErr(err)
+			values = append(values, value)
 		}
-		all_keys = strings.Join( keys, ",")
-		all_values = append( all_values, strings.Join( values, ","))
-
+		all_keys = strings.Join(keys, ",")
+		all_values = append(all_values, strings.Join(values, ","))
 
 	}
-	stmt := fmt.Sprintf( "INSERT INTO %s (%s) VALUES ( %s )", table, all_keys, strings.Join(all_values, "), ( "))
+	stmt := fmt.Sprintf("INSERT INTO %s (%s) VALUES ( %s )", table, all_keys, strings.Join(all_values, "), ( "))
 	//fmt.Println( stmt )
 
-	err := Do( stmt )
+	err := Do(stmt)
 	return err
 }
 
-
 func Update(table string, values map[string]interface{}, conditions map[string]interface{}) {
 
-
-	var updates, conds  []string
+	var updates, conds []string
 
 	for k := range values {
-		updates = append( updates, fmt.Sprintf("%s = %s", k, escapeString(values[k])))
+		value, err := escapeString(values[k])
+		checkErr(err)
+		updates = append(updates, fmt.Sprintf("%s = %s", k, value))
 	}
 
 	for k := range conditions {
-		conds = append( conds, fmt.Sprintf("%s = %s", k, escapeString(values[k])))
+		value, err := escapeString(conditions[k])
+		checkErr(err)
+		conds = append(conds, fmt.Sprintf("%s = %s", k, value))
 	}
 
-	stmt := fmt.Sprintf( "UPDATE %s SET %s WHERE %s ", table, strings.Join( updates, ", "), strings.Join( conds, " AND "))
+	stmt := fmt.Sprintf("UPDATE %s SET %s WHERE %s ", table, strings.Join(updates, ", "), strings.Join(conds, " AND "))
 
 	//fmt.Println( stmt )
-	err := Do( stmt )
-	checkErr( err )
+	err := Do(stmt)
+	checkErr(err)
 
 }
 
-func Delete( table string, id interface{}) {
-	stmt := fmt.Sprintf("DELETE FROM %s WHERE id = %s", table, escapeString(id))
-	err := Do(stmt)
-	checkErr( err )
+func Delete(table string, id interface{}) {
+	value, err := escapeString(id)
+	checkErr(err)
+
+	stmt := fmt.Sprintf("DELETE FROM %s WHERE id = %s", table, value)
+	err = Do(stmt)
+	checkErr(err)
 
 }
