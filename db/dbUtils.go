@@ -51,7 +51,7 @@ func escapeString(v any) (string, error) {
 	}
 }
 
-func AsList(query string) []map[string]interface{} {
+func AsList(query string) ([]map[string]interface{}, error) {
 
 	if query[len(query)-1] != ';' {
 		query = fmt.Sprintf("%s;", query)
@@ -61,7 +61,9 @@ func AsList(query string) []map[string]interface{} {
 	rows, err := db.Query(query)
 	checkErr(err)
 	cols, err := rows.Columns() // Remember to check err afterwards
-	checkErr(err)
+	if err != nil {
+		return nil, nil
+	}
 
 	//	fmt.Println(cols)
 
@@ -92,23 +94,21 @@ func AsList(query string) []map[string]interface{} {
 		res = append(res, m)
 	}
 
-	return res
+	return res, nil
 }
 
-func Get(table string, filter map[string]interface{}, rest ...string) []map[string]interface{} {
+func Get(table string, filter map[string]interface{}, rest ...string) ([]map[string]interface{}, error) {
 
 	stmt := fmt.Sprintf("SELECT * FROM %s ", table)
 
 	var conds []string
 	for key, value := range filter {
-		switch reflect.TypeOf(value).String() {
-		case "string":
-			conds = append(conds, fmt.Sprintf(" %s = '%s'", key, value))
-		case "int":
-			conds = append(conds, fmt.Sprintf(" %s = %d", key, value))
-		default:
-			conds = append(conds, fmt.Sprintf(" %s = '%s'", key, value))
+		v, err := escapeString(value)
+		if err != nil {
+			var e []map[string]interface{}
+			return e, err
 		}
+		conds = append(conds, fmt.Sprintf(" %s = %s", key, v))
 	}
 
 	//    fmt.Println( conds )
@@ -119,6 +119,7 @@ func Get(table string, filter map[string]interface{}, rest ...string) []map[stri
 		stmt = fmt.Sprintf("%s %s", stmt, strings.Join(rest[:], " "))
 	}
 
+	// as list will crash if input is illegal
 	return AsList(stmt)
 }
 
@@ -135,7 +136,10 @@ func GetSingle(table string, filter map[string]interface{}, rest ...string) map[
 
 	//	fmt.Println(reflect.TypeOf(rest).String())
 
-	values := Get(table, filter, rest...)
+	values, err := Get(table, filter, rest...)
+	if err != nil {
+		return nil
+	}
 	if len(values) > 1 {
 		fmt.Println("Function returned multiple vales!")
 		return nil
@@ -147,7 +151,7 @@ func GetSingle(table string, filter map[string]interface{}, rest ...string) map[
 
 }
 
-func GetAll(table string, rest ...string) []map[string]interface{} {
+func GetAll(table string, rest ...string) ([]map[string]interface{}, error) {
 	return Get(table, make(map[string]interface{}), rest...)
 }
 
@@ -177,7 +181,9 @@ func Add(table string, entry map[string]interface{}) error {
 		//fmt.Printf(" VALUE %s --> %s\n", k, entry[k])
 		keys = append(keys, k)
 		value, err := escapeString(entry[k])
-		checkErr(err)
+		if err != nil {
+			return err
+		}
 		values = append(values, value)
 	}
 
@@ -199,7 +205,9 @@ func AddBulk(table string, entries []map[string]interface{}) error {
 		for k := range entry {
 			keys = append(keys, k)
 			value, err := escapeString(entry[k])
-			checkErr(err)
+			if err != nil {
+				return err
+			}
 			values = append(values, value)
 		}
 		all_keys = strings.Join(keys, ",")
