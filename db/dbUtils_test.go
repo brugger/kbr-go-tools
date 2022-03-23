@@ -133,6 +133,18 @@ func TestAdd(t *testing.T) {
 	checkErr(err)
 }
 
+func TestAddErr(t *testing.T) {
+	//	t.Log("Insert data with Add")
+	var v = make(map[string]interface{})
+	v["idx"] = 2
+	v["value"] = []int{1, 2, 3}
+
+	err := Add("TEST", v)
+	if err == nil {
+		t.Errorf("accepted wrong input type %s", reflect.TypeOf(v["value"]).String())
+	}
+}
+
 func TestAddBulk(t *testing.T) {
 	//	t.Log("Insert data with AddBulk")
 
@@ -143,15 +155,27 @@ func TestAddBulk(t *testing.T) {
 	checkErr(err)
 }
 
+func TestAddBulkErr(t *testing.T) {
+	//	t.Log("Insert data with AddBulk")
+
+	v1 := map[string]interface{}{"idx": 10, "value": "Remember to"}
+	v2 := map[string]interface{}{"idx": 11, "value": []int{11, 12, 24}}
+
+	err := AddBulk("TEST", []map[string]interface{}{v1, v2})
+	if err == nil {
+		t.Errorf("accepted wrong input type %s", reflect.TypeOf(v2["value"]).String())
+	}
+}
+
 func TestGetAll(t *testing.T) {
-	v := GetAll("TEST")
+	v, _ := GetAll("TEST")
 	if len(v) != 5 {
 		t.Errorf("Returned wrong number of entries expected 5 got %d", len(v))
 	}
 }
 
 func TestGetById(t *testing.T) {
-	v := GetByID("TEST", 2)
+	v, _ := GetByID("TEST", 2)
 
 	if v["idx"].(int64) != 3 {
 		t.Errorf("Returned wrong idx 3 got %d", v["idx"])
@@ -159,8 +183,19 @@ func TestGetById(t *testing.T) {
 
 }
 
+func TestGetByIdErr(t *testing.T) {
+	v, err := GetByID("TEST", []int{1, 2})
+
+	fmt.Print(v, err)
+
+	if err == nil {
+		t.Errorf("Accepted wrong input type")
+	}
+
+}
+
 func TestGetId(t *testing.T) {
-	id := GetID("TEST", map[string]interface{}{"value": "world"})
+	id, _ := GetID("TEST", map[string]interface{}{"value": "world"})
 	//fmt.Println( id )
 
 	if id.(int64) != 2 {
@@ -169,16 +204,16 @@ func TestGetId(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	v := GetByID("TEST", 2)
+	v, _ := GetByID("TEST", 2)
 	v["value"] = "New value"
 	Update("TEST", v, map[string]interface{}{"id": 2})
-	v = GetByID("TEST", 2)
+	v, _ = GetByID("TEST", 2)
 	//fmt.Println( v )
 }
 
 func TestDelete(t *testing.T) {
 	Delete("TEST", 2)
-	v := GetByID("TEST", 2)
+	v, _ := GetByID("TEST", 2)
 	if len(v) != 0 {
 		t.Errorf("Element not deleted")
 	}

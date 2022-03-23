@@ -57,7 +57,7 @@ func AsList(query string) ([]map[string]interface{}, error) {
 		query = fmt.Sprintf("%s;", query)
 	}
 
-	fmt.Println(query)
+	//fmt.Println(query)
 	rows, err := db.Query(query)
 	checkErr(err)
 	cols, err := rows.Columns() // Remember to check err afterwards
@@ -127,26 +127,27 @@ func Do(query string) error {
 	if query[len(query)-1] != ';' {
 		query = fmt.Sprintf("%s;", query)
 	}
-	fmt.Println(query)
+	//fmt.Println(query)
 	_, err := db.Exec(query)
 	return err
 }
 
-func GetSingle(table string, filter map[string]interface{}, rest ...string) map[string]interface{} {
+func GetSingle(table string, filter map[string]interface{}, rest ...string) (map[string]interface{}, error) {
 
 	//	fmt.Println(reflect.TypeOf(rest).String())
 
 	values, err := Get(table, filter, rest...)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	if len(values) > 1 {
-		fmt.Println("Function returned multiple vales!")
-		return nil
+		//		fmt.Println("Function returned multiple vales!")
+		err = errors.New("Get single returned multiple vales")
+		return nil, err
 	} else if len(values) == 1 {
-		return values[0]
+		return values[0], nil
 	} else {
-		return nil
+		return nil, nil
 	}
 
 }
@@ -155,22 +156,30 @@ func GetAll(table string, rest ...string) ([]map[string]interface{}, error) {
 	return Get(table, make(map[string]interface{}), rest...)
 }
 
-func GetByID(table string, id interface{}, rest ...string) map[string]interface{} {
+func GetByID(table string, id interface{}, rest ...string) (map[string]interface{}, error) {
 	f := make(map[string]interface{})
 	f["id"] = id
+
 	return GetSingle(table, f, rest...)
 }
 
-func GetID(table string, filter map[string]interface{}, rest ...string) interface{} {
+func GetID(table string, filter map[string]interface{}, rest ...string) (interface{}, error) {
 
 	//	fmt.Println(reflect.TypeOf(rest).String())
 
-	value := GetSingle(table, filter, rest...)
-	if value != nil {
-		return value["id"]
+	fmt.Println(filter)
+
+	value, err := GetSingle(table, filter, rest...)
+	fmt.Println(value, err)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	if value != nil {
+		return value["id"], nil
+	}
+
+	return nil, nil
 }
 
 func Add(table string, entry map[string]interface{}) error {
@@ -221,7 +230,7 @@ func AddBulk(table string, entries []map[string]interface{}) error {
 	return err
 }
 
-func Update(table string, values map[string]interface{}, conditions map[string]interface{}) {
+func Update(table string, values map[string]interface{}, conditions map[string]interface{}) error {
 
 	var updates, conds []string
 
@@ -241,16 +250,16 @@ func Update(table string, values map[string]interface{}, conditions map[string]i
 
 	//fmt.Println( stmt )
 	err := Do(stmt)
-	checkErr(err)
+	return err
 
 }
 
-func Delete(table string, id interface{}) {
+func Delete(table string, id interface{}) error {
 	value, err := escapeString(id)
 	checkErr(err)
 
 	stmt := fmt.Sprintf("DELETE FROM %s WHERE id = %s", table, value)
 	err = Do(stmt)
-	checkErr(err)
+	return err
 
 }
