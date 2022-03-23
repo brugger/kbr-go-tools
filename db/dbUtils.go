@@ -59,10 +59,14 @@ func AsList(query string) ([]map[string]interface{}, error) {
 
 	//fmt.Println(query)
 	rows, err := db.Query(query)
-	checkErr(err)
+
+	if err != nil {
+		return nil, err
+	}
+
 	cols, err := rows.Columns() // Remember to check err afterwards
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	//	fmt.Println(cols)
@@ -80,7 +84,8 @@ func AsList(query string) ([]map[string]interface{}, error) {
 
 		// Scan the result into the column pointers...
 		if err := rows.Scan(columnPointers...); err != nil {
-			checkErr(err)
+			return nil, err
+			//			checkErr(err)
 		}
 
 		// Create our map, and retrieve the value for each column from the pointers slice,
@@ -167,10 +172,10 @@ func GetID(table string, filter map[string]interface{}, rest ...string) (interfa
 
 	//	fmt.Println(reflect.TypeOf(rest).String())
 
-	fmt.Println(filter)
+	//fmt.Println(filter)
 
 	value, err := GetSingle(table, filter, rest...)
-	fmt.Println(value, err)
+	//fmt.Println(value, err)
 	if err != nil {
 		return nil, err
 	}
@@ -236,13 +241,19 @@ func Update(table string, values map[string]interface{}, conditions map[string]i
 
 	for k := range values {
 		value, err := escapeString(values[k])
-		checkErr(err)
+		if err != nil {
+			return err
+		}
+		//		checkErr(err)
 		updates = append(updates, fmt.Sprintf("%s = %s", k, value))
 	}
 
 	for k := range conditions {
 		value, err := escapeString(conditions[k])
-		checkErr(err)
+		if err != nil {
+			return err
+		}
+		//checkErr(err)
 		conds = append(conds, fmt.Sprintf("%s = %s", k, value))
 	}
 
@@ -256,7 +267,10 @@ func Update(table string, values map[string]interface{}, conditions map[string]i
 
 func Delete(table string, id interface{}) error {
 	value, err := escapeString(id)
-	checkErr(err)
+	if err != nil {
+		return err
+	}
+	//checkErr(err)
 
 	stmt := fmt.Sprintf("DELETE FROM %s WHERE id = %s", table, value)
 	err = Do(stmt)

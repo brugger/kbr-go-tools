@@ -174,6 +174,13 @@ func TestGetAll(t *testing.T) {
 	}
 }
 
+func TestGetAllErr(t *testing.T) {
+	v, err := GetAll("TESTINGS")
+	if err == nil {
+		t.Errorf("Returned data from non-existing table! %s", v)
+	}
+}
+
 func TestGetById(t *testing.T) {
 	v, _ := GetByID("TEST", 2)
 
@@ -184,9 +191,7 @@ func TestGetById(t *testing.T) {
 }
 
 func TestGetByIdErr(t *testing.T) {
-	v, err := GetByID("TEST", []int{1, 2})
-
-	fmt.Print(v, err)
+	_, err := GetByID("TEST", []int{1, 2})
 
 	if err == nil {
 		t.Errorf("Accepted wrong input type")
@@ -203,6 +208,15 @@ func TestGetId(t *testing.T) {
 	}
 }
 
+func TestGetIdErr(t *testing.T) {
+	_, err := GetID("TEST", map[string]interface{}{"value": []int{1, 2}})
+	//fmt.Println( id )
+
+	if err == nil {
+		t.Errorf("Accepted wrong input type")
+	}
+}
+
 func TestUpdate(t *testing.T) {
 	v, _ := GetByID("TEST", 2)
 	v["value"] = "New value"
@@ -211,13 +225,29 @@ func TestUpdate(t *testing.T) {
 	//fmt.Println( v )
 }
 
+func TestUpdateErr(t *testing.T) {
+	v, _ := GetByID("TEST", 2)
+	v["value"] = "New value"
+	v["id"] = "No an ID"
+	err := Update("TEST", v, map[string]interface{}{"id": 2})
+	if err == nil {
+		t.Errorf("Accecpted update with invalid id")
+	}
+}
+
 func TestDelete(t *testing.T) {
 	Delete("TEST", 2)
 	v, _ := GetByID("TEST", 2)
 	if len(v) != 0 {
 		t.Errorf("Element not deleted")
 	}
-	//fmt.Println( v )
+}
+
+func TestDeleteErr(t *testing.T) {
+	err := Delete("TESTING", 2)
+	if err == nil {
+		t.Errorf("Deleted from non-existing table")
+	}
 }
 
 func TestClose(t *testing.T) {
